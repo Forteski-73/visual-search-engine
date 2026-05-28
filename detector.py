@@ -57,7 +57,7 @@ def detectar_prato(img):
     # PREDIÇÃO
     # =================================================
     # "cpu"
-    # conf=0.40, confiabilidade, para nã oidentificar qualquer coisa
+    # conf=0.40, confiabilidade, para não identificar qualquer coisa
     results = model.predict(
         img,
         conf=0.30,

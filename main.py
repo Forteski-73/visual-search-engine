@@ -151,13 +151,13 @@ def analisar_base64(req: ImageRequest):
         resposta_qdrant = qdrant_client.query_points(
             collection_name=COLLECTION_NAME,
             query=embedding_teste.tolist(),
-            limit=3,
+            limit=3, # Mantém os 3 melhores
             score_threshold=0.80  # Rígido
         )
 
         # Se não retornou nada (lista vazia), entra o plano B: busca mais frouxa
         if not resposta_qdrant.points:
-            print("Nenhum resultado com score >= 0.80. Tentando busca frouxa...")
+            print("Nenhum resultado com score >= 0.80. Tentando busca frouxa... >= 0.65")
             
             resposta_qdrant = qdrant_client.query_points(
                 collection_name=COLLECTION_NAME,
