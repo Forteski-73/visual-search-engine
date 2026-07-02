@@ -89,3 +89,22 @@ para logs
 sudo journalctl -u oxf-ai.service -f
 
 //--------------------------------------------------------------------------------------------
+pip install qdrant-client
+uvicorn main:app --reload --port 8000
+
+//------------------------------NO ÚLTIMO DEPLOY----------------------------------------------
+
+root@srv880832:/var/www/OxfordOnline/AI# source venv/bin/activate                                                               python -m uvicorn main:app --host 0.0.0.0 --port 8000
+(venv) root@srv880832:/var/www/OxfordOnline/AI# python -m uvicorn main:app --host 0.0.0.0 --port 8000
+(venv) root@srv880832:/var/www/OxfordOnline/AI# source venv/bin/activate
+(venv) root@srv880832:/var/www/OxfordOnline/AI# pip install python-dotenv
+Collecting python-dotenv
+  Downloading python_dotenv-1.2.2-py3-none-any.whl.metadata (27 kB)
+Downloading python_dotenv-1.2.2-py3-none-any.whl (22 kB)
+Installing collected packages: python-dotenv
+Successfully installed python-dotenv-1.2.2
+
+[notice] A new release of pip is available: 26.1.1 -> 26.1.2
+[notice] To update, run: pip install --upgrade pip                                                                              sudo systemctl restart oxf-ai.service
+(venv) root@srv880832:/var/www/OxfordOnline/AI# sudo systemctl restart oxf-ai.service
+(venv) root@srv880832:/var/www/OxfordOnline/AI# 

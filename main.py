@@ -12,7 +12,7 @@ from detector import detectar_prato
 from utils import load_image_from_base64, load_image_from_url
 from model import gerar_embedding_dinov2
 from vector_db import qdrant_client, COLLECTION_NAME, inicializar_banco_vetorial
-from models import TrainRequest, ImageRequest
+from models import TrainRequest, ImageRequest, ProductBomRequest
 
 from fastapi import Query
 from datetime import datetime, timedelta
@@ -355,3 +355,94 @@ def listar_imagens_recentes(
             "error_code": "DATABASE_ERROR",
             "message": str(e)
         }
+    
+# =====================================================
+# ➕ INSERIR REGISTRO NA PRODUCT_BOM
+# =====================================================
+"""
+@app.post("/bom/inserir")
+def inserir_bom(req: ProductBomRequest):
+    try:
+        conn = get_conn()
+        cursor = conn.cursor()
+
+        sql = 
+            INSERT INTO product_bom (product_id, product_bom_id, product_name, product_qty)
+            VALUES (%s, %s, %s, %s)
+        
+
+        cursor.execute(sql, (req.product_id, req.product_bom_id, req.product_name, req.product_qty))
+        conn.commit()
+
+        novo_id = cursor.lastrowid
+
+        cursor.close()
+        conn.close()
+
+        return {
+            "success": True,
+            "message": "Registro inserido com sucesso.",
+            "data": {
+                "id": novo_id,
+                "product_id":       req.product_id,
+                "product_bom_id":   req.product_bom_id,
+                "product_name":     req.product_name,
+                "product_qty":      req.product_qty
+            }
+        }
+
+    except Exception as e:
+        traceback.print_exc()
+        return {
+            "success": False,
+            "error_code": "INSERT_ERROR",
+            "message": str(e)
+        } """
+
+# =====================================================
+# ➕ INSERIR REGISTRO NA PRODUCT_BOM
+# =====================================================
+@app.post("/bom/inserir")
+def inserir_bom(req: ProductBomRequest):
+    conn = None
+    cursor = None
+    try:
+        conn = get_conn()
+        cursor = conn.cursor()
+
+        sql = """
+            INSERT INTO product_bom (product_id, product_bom_id, product_name, product_qty)
+            VALUES (%s, %s, %s, %s)
+        """
+
+        cursor.execute(sql, (req.product_id, req.product_bom_id, req.product_name, req.product_qty))
+        conn.commit()
+
+        novo_id = cursor.lastrowid
+
+        return {
+            "success": True,
+            "message": "Registro inserido com sucesso.",
+            "data": {
+                "id": novo_id,
+                "product_id":       req.product_id,
+                "product_bom_id":   req.product_bom_id,
+                "product_name":     req.product_name,
+                "product_qty":      req.product_qty
+            }
+        }
+
+    except Exception as e:
+        traceback.print_exc()
+        return {
+            "success": False,
+            "error_code": "INSERT_ERROR",
+            "message": str(e)
+        }
+        
+    finally:
+        # ISSO AQUI SALVA O SEU BANCO: garante o fechamento ocorrendo erro ou não
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()

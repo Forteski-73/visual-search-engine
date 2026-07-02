@@ -69,3 +69,45 @@ class TrainRequest(BaseModel):
         le=100,
         description="Quantidade de imagens augmentadas"
     )
+
+# =====================================================
+# MODEL - BOM
+# =====================================================
+class ProductBomRequest(BaseModel):
+
+    # ================================================
+    # ID DO PRODUTO
+    # ================================================
+    product_id: str = Field(
+        ...,
+        min_length=1,
+        max_length=10,
+        description="Código do produto embalado"
+    )
+
+    # ================================================
+    # ID DO PRODUTO BOM
+    # ================================================
+    product_bom_id: Optional[str] = Field(
+        default=None,
+        max_length=10,
+        description="Código do produto da BOM"
+    )
+
+    # ================================================
+    # NOME DO PRODUTO
+    # ================================================
+    product_name: Optional[str] = Field(
+        default=None,
+        max_length=255,
+        description="Nome/descrição do produto"
+    )
+
+    # ================================================
+    # QUANTIDADE
+    # ================================================
+    product_qty: int = Field(
+        default=1,
+        ge=1,
+        description="Quantidade do item na BOM"
+    )
