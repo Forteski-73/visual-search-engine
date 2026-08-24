@@ -1,12 +1,15 @@
-import requests
+# core/image_utils.py
 import base64
-
+import io
+import logging
 from io import BytesIO
 
-from PIL import (
-    Image,
-    ImageFile
-)
+import cv2
+import numpy as np
+import requests
+from PIL import Image, ImageFile
+
+logger = logging.getLogger(__name__)
 
 # =====================================================
 # EVITA ERRO COM IMAGEM PARCIAL
@@ -23,8 +26,9 @@ ALLOWED_FORMATS = [
     "jpg",
     "png",
     "webp",
-    "bmp"
+    "bmp",
 ]
+
 
 # =====================================================
 # VALIDAR IMAGEM
@@ -36,7 +40,7 @@ def validar_imagem(image_data: bytes):
     # ================================================
     if not image_data:
 
-        print("❌ Conteúdo vazio")
+        logger.warning("❌ Conteúdo vazio")
 
         return False
 
@@ -47,10 +51,7 @@ def validar_imagem(image_data: bytes):
 
     if tamanho_mb > MAX_IMAGE_SIZE_MB:
 
-        print(
-            f"❌ Imagem muito grande: "
-            f"{tamanho_mb:.2f} MB"
-        )
+        logger.warning(f"❌ Imagem muito grande: {tamanho_mb:.2f} MB")
 
         return False
 
@@ -59,18 +60,13 @@ def validar_imagem(image_data: bytes):
     # ================================================
     try:
 
-        img_test = Image.open(
-            BytesIO(image_data)
-        )
+        img_test = Image.open(BytesIO(image_data))
 
-        formato = (
-            img_test.format
-            .lower()
-        )
+        formato = img_test.format.lower()
 
     except Exception:
 
-        print("❌ Formato inválido")
+        logger.warning("❌ Formato inválido")
 
         return False
 
@@ -79,13 +75,12 @@ def validar_imagem(image_data: bytes):
     # ================================================
     if formato not in ALLOWED_FORMATS:
 
-        print(
-            f"❌ Formato inválido: {formato}"
-        )
+        logger.warning(f"❌ Formato inválido: {formato}")
 
         return False
 
     return True
+
 
 # =====================================================
 # NORMALIZA IMAGEM
@@ -110,24 +105,15 @@ def normalizar_imagem(img: Image.Image):
 
             if orientation == 3:
 
-                img = img.rotate(
-                    180,
-                    expand=True
-                )
+                img = img.rotate(180, expand=True)
 
             elif orientation == 6:
 
-                img = img.rotate(
-                    270,
-                    expand=True
-                )
+                img = img.rotate(270, expand=True)
 
             elif orientation == 8:
 
-                img = img.rotate(
-                    90,
-                    expand=True
-                )
+                img = img.rotate(90, expand=True)
 
         except Exception:
             pass
@@ -136,12 +122,10 @@ def normalizar_imagem(img: Image.Image):
 
     except Exception as e:
 
-        print(
-            f"❌ Erro ao normalizar imagem: "
-            f"{str(e)}"
-        )
+        logger.warning(f"❌ Erro ao normalizar imagem: {str(e)}")
 
         return None
+
 
 # =====================================================
 # URL (ROBUSTO / PRODUÇÃO)
@@ -155,20 +139,13 @@ def load_image_from_url(url: str):
         # ============================================
         if not url:
 
-            print("❌ URL vazia")
+            logger.warning("❌ URL vazia")
 
             return None
 
         headers = {
-
-            "User-Agent": (
-                "Mozilla/5.0 "
-                "(Windows NT 10.0; Win64; x64)"
-            ),
-
-            "Accept": (
-                "image/webp,image/apng,image/*,*/*;q=0.8"
-            )
+            "User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64)"),
+            "Accept": ("image/webp,image/apng,image/*,*/*;q=0.8"),
         }
 
         # ============================================
@@ -178,7 +155,7 @@ def load_image_from_url(url: str):
             url,
             headers=headers,
             timeout=15,
-            stream=True
+            stream=True,
         )
 
         # ============================================
@@ -186,27 +163,18 @@ def load_image_from_url(url: str):
         # ============================================
         if response.status_code != 200:
 
-            print(
-                f"❌ HTTP inválido: "
-                f"{response.status_code}"
-            )
+            logger.warning(f"❌ HTTP inválido: {response.status_code}")
 
             return None
 
         # ============================================
         # CONTENT TYPE
         # ============================================
-        content_type = response.headers.get(
-            "Content-Type",
-            ""
-        )
+        content_type = response.headers.get("Content-Type", "")
 
         if "image" not in content_type.lower():
 
-            print(
-                f"❌ URL não retornou imagem: "
-                f"{content_type}"
-            )
+            logger.warning(f"❌ URL não retornou imagem: {content_type}")
 
             return None
 
@@ -225,9 +193,7 @@ def load_image_from_url(url: str):
         # ============================================
         # PIL
         # ============================================
-        img = Image.open(
-            BytesIO(image_data)
-        )
+        img = Image.open(BytesIO(image_data))
 
         img = normalizar_imagem(img)
 
@@ -235,42 +201,34 @@ def load_image_from_url(url: str):
 
             return None
 
-        print(
-            f"✅ Imagem carregada via URL "
-            f"({img.width}x{img.height})"
-        )
+        logger.info(f"✅ Imagem carregada via URL ({img.width}x{img.height})")
 
         return img
 
     except requests.exceptions.Timeout:
 
-        print("❌ Timeout ao baixar imagem")
+        logger.warning("❌ Timeout ao baixar imagem")
 
         return None
 
     except requests.exceptions.ConnectionError:
 
-        print("❌ Erro de conexão")
+        logger.warning("❌ Erro de conexão")
 
         return None
 
     except requests.exceptions.RequestException as e:
 
-        print(
-            f"❌ Falha na requisição: "
-            f"{str(e)}"
-        )
+        logger.warning(f"❌ Falha na requisição: {str(e)}")
 
         return None
 
     except Exception as e:
 
-        print(
-            f"❌ Erro ao processar imagem: "
-            f"{str(e)}"
-        )
+        logger.warning(f"❌ Erro ao processar imagem: {str(e)}")
 
         return None
+
 
 # =====================================================
 # BASE64 (ROBUSTO / PRODUÇÃO)
@@ -284,7 +242,7 @@ def load_image_from_base64(base64_string: str):
         # ============================================
         if not base64_string:
 
-            print("❌ Base64 vazio")
+            logger.warning("❌ Base64 vazio")
 
             return None
 
@@ -293,17 +251,12 @@ def load_image_from_base64(base64_string: str):
         # ============================================
         if "," in base64_string:
 
-            base64_string = (
-                base64_string.split(",")[1]
-            )
+            base64_string = base64_string.split(",")[1]
 
         # ============================================
         # DECODE
         # ============================================
-        image_data = base64.b64decode(
-            base64_string,
-            validate=True
-        )
+        image_data = base64.b64decode(base64_string, validate=True)
 
         # ============================================
         # VALIDAÇÃO
@@ -315,9 +268,7 @@ def load_image_from_base64(base64_string: str):
         # ============================================
         # PIL
         # ============================================
-        img = Image.open(
-            BytesIO(image_data)
-        )
+        img = Image.open(BytesIO(image_data))
 
         img = normalizar_imagem(img)
 
@@ -325,48 +276,52 @@ def load_image_from_base64(base64_string: str):
 
             return None
 
-        print(
-            f"✅ Imagem Base64 carregada "
-            f"({img.width}x{img.height})"
-        )
+        logger.info(f"✅ Imagem Base64 carregada ({img.width}x{img.height})")
 
         return img
 
     except base64.binascii.Error:
 
-        print("❌ Base64 inválido")
+        logger.warning("❌ Base64 inválido")
 
         return None
 
     except Exception as e:
 
-        print(
-            f"❌ Erro ao processar Base64: "
-            f"{str(e)}"
-        )
+        logger.warning(f"❌ Erro ao processar Base64: {str(e)}")
 
         return None
-        
+
+
 # =====================================================
 # PIL IMAGE -> BASE64
 # =====================================================
-
-import io
-import base64
-
 def image_to_base64(img):
 
     buffer = io.BytesIO()
 
-    img.save(
-        buffer,
-        format="PNG"
-    )
+    img.save(buffer, format="PNG")
 
     img_bytes = buffer.getvalue()
 
-    base64_str = base64.b64encode(
-        img_bytes
-    ).decode("utf-8")
+    base64_str = base64.b64encode(img_bytes).decode("utf-8")
 
     return f"data:image/png;base64,{base64_str}"
+
+
+# =====================================================
+# IMAGEM PROCESSADA (OPENCV OU PIL) -> BASE64 JPEG
+# =====================================================
+def converter_para_base64(img_processada) -> str:
+    # Se a imagem for do OpenCV (numpy array)
+    if isinstance(img_processada, np.ndarray):
+        _, buffer = cv2.imencode(".jpg", img_processada)
+        return base64.b64encode(buffer).decode("utf-8")
+
+    # Se a imagem for do PIL Image
+    elif isinstance(img_processada, Image.Image):
+        buffered = BytesIO()
+        img_processada.save(buffered, format="JPEG", quality=85)
+        return base64.b64encode(buffered.getvalue()).decode("utf-8")
+
+    raise ValueError("Formato de imagem não suportado para conversão em Base64")

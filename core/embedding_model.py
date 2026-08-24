@@ -1,8 +1,12 @@
-# model.py
-import torch
-from transformers import AutoImageProcessor, AutoModel
-from PIL import Image
+# core/embedding_model.py
+import logging
+
 import numpy as np
+import torch
+from PIL import Image
+from transformers import AutoImageProcessor, AutoModel
+
+logger = logging.getLogger(__name__)
 
 # Configuração de hardware dinâmica
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -14,23 +18,26 @@ processor = AutoImageProcessor.from_pretrained(PROCESSOR_NAME)
 model = AutoModel.from_pretrained(PROCESSOR_NAME).to(device)
 model.eval()  # Modo de inferência (desativa dropout)
 
+logger.info(f"[DINOv2]: Modelo carregado (device={device})")
+
+
 def gerar_embedding_dinov2(img: Image.Image) -> np.ndarray:
     """
     Gera um embedding normalizado de 768 dimensões focado em geometria e forma.
     """
     # Garante que a imagem está em RGB
     img_rgb = img.convert("RGB")
-    
+
     # Pré-processamento oficial do modelo
     inputs = processor(images=img_rgb, return_tensors="pt").to(device)
-    
+
     with torch.no_grad():
         outputs = model(**inputs)
-    
+
     # Extraímos o CLS token (índice 0), que representa a assinatura global da imagem
     embedding = outputs.last_hidden_state[:, 0, :]
-    
+
     # Normalização L2: Garante que a busca por Distância de Cosseno seja ultra precisa
     embedding = torch.nn.functional.normalize(embedding, p=2, dim=1)
-    
+
     return embedding[0].cpu().numpy()

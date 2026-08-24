@@ -1,43 +1,36 @@
-from ultralytics import YOLO
-from PIL import Image, ImageFilter
+# core/detector.py
+import logging
+
 import numpy as np
-import os
 import torch
+from PIL import Image, ImageFilter
+from ultralytics import YOLO
+
+from config import PROJECT_ROOT
+
+logger = logging.getLogger(__name__)
 
 # =====================================================
 # DEVICE
 # =====================================================
-device = (
-    "cuda"
-    if torch.cuda.is_available()
-    else "cpu"
-)
+device = "cuda" if torch.cuda.is_available() else "cpu"
 
-print(f"[DEVICE]: {device}")
+logger.info(f"[DEVICE]: {device}")
 
 # =====================================================
 # MODELO YOLO SEGMENTATION
 # =====================================================
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+MODEL_PATH = PROJECT_ROOT / "yolo" / "model_oxford_seg.pt"
 
-MODEL_PATH = os.path.join(
-    BASE_DIR,
-    "yolo",
-    "model_oxford_seg.pt"
-)
-
-if not os.path.exists(MODEL_PATH):
-
-    raise FileNotFoundError(
-        f"Modelo não encontrado: {MODEL_PATH}"
-    )
+if not MODEL_PATH.exists():
+    raise FileNotFoundError(f"Modelo não encontrado: {MODEL_PATH}")
 
 # =====================================================
 # CARREGA YOLO
 # =====================================================
-model = YOLO(MODEL_PATH)
+model = YOLO(str(MODEL_PATH))
 
-print("[YOLO]: Modelo carregado")
+logger.info("[YOLO]: Modelo carregado")
 
 # =====================================================
 # CLASSES VÁLIDAS
@@ -45,8 +38,9 @@ print("[YOLO]: Modelo carregado")
 CLASSES_VALIDAS = [
     "PRATO",
     "XICARA",
-    "CANECA"
+    "CANECA",
 ]
+
 
 # =====================================================
 # DETECTAR OBJETO
@@ -56,13 +50,12 @@ def detectar_prato(img):
     # =================================================
     # PREDIÇÃO
     # =================================================
-    # "cpu"
     # conf=0.40, confiabilidade, para não identificar qualquer coisa
     results = model.predict(
         img,
         conf=0.30,
         verbose=False,
-        device=device
+        device=device,
     )
 
     # =================================================
@@ -70,7 +63,7 @@ def detectar_prato(img):
     # =================================================
     if not results:
 
-        print("[YOLO]: Nenhum resultado")
+        logger.debug("[YOLO]: Nenhum resultado")
 
         return None
 
@@ -81,9 +74,8 @@ def detectar_prato(img):
     # =================================================
     if r.masks is None:
 
-        print("[YOLO]: Nenhuma máscara encontrada")
-        print("================================")
-        print("TOTAL BOXES:", len(r.boxes))
+        logger.debug("[YOLO]: Nenhuma máscara encontrada")
+        logger.debug("TOTAL BOXES: %s", len(r.boxes))
 
         for i, box in enumerate(r.boxes):
 
@@ -93,15 +85,10 @@ def detectar_prato(img):
 
             conf = float(box.conf[0])
 
-            print(
-                f"[DETECÇÃO {i}] "
-                f"{nome} "
-                f"(conf={conf:.3f})"
-            )
+            logger.debug(f"[DETECÇÃO {i}] {nome} (conf={conf:.3f})")
 
-        print("MASKS:", r.masks)
-        print("================================")
-        
+        logger.debug("MASKS: %s", r.masks)
+
         return None
 
     masks = r.masks.data.cpu().numpy()
@@ -121,20 +108,14 @@ def detectar_prato(img):
 
         conf = float(box.conf[0])
 
-        print(
-            f"[YOLO ENXERGOU]: "
-            f"{nome} "
-            f"(conf={conf:.2f})"
-        )
+        logger.debug(f"[YOLO ENXERGOU]: {nome} (conf={conf:.2f})")
 
         # =============================================
         # IGNORA QUALQUER OUTRA COISA
         # =============================================
         if nome not in CLASSES_VALIDAS:
 
-            print(
-                f"[IGNORADO]: {nome}"
-            )
+            logger.debug(f"[IGNORADO]: {nome}")
 
             continue
 
@@ -143,44 +124,32 @@ def detectar_prato(img):
         # =============================================
         area = masks[i].sum()
 
-        deteccoes_validas.append({
-
-            "idx": i,
-
-            "classe": nome,
-
-            "conf": conf,
-
-            "area": area
-        })
+        deteccoes_validas.append(
+            {
+                "idx": i,
+                "classe": nome,
+                "conf": conf,
+                "area": area,
+            }
+        )
 
     # =================================================
     # NENHUM OBJETO VÁLIDO
     # =================================================
     if len(deteccoes_validas) == 0:
 
-        print(
-            "[YOLO]: "
-            "Nenhum plate/bowl/cup/mug/vase encontrado"
-        )
+        logger.debug("[YOLO]: Nenhum plate/bowl/cup/mug/vase encontrado")
 
         return None
 
     # =================================================
     # ESCOLHE MAIOR ÁREA
     # =================================================
-    melhor = max(
-        deteccoes_validas,
-        key=lambda x: x["area"]
-    )
+    melhor = max(deteccoes_validas, key=lambda x: x["area"])
 
     melhor_idx = melhor["idx"]
 
-    print(
-        f"[YOLO DETECTOU]: "
-        f"{melhor['classe']} "
-        f"(conf={melhor['conf']:.2f})"
-    )
+    logger.info(f"[YOLO DETECTOU]: {melhor['classe']} (conf={melhor['conf']:.2f})")
 
     # =================================================
     # MÁSCARA
@@ -190,83 +159,49 @@ def detectar_prato(img):
     # =================================================
     # IMG -> NUMPY
     # =================================================
-    img_np = np.array(
-        img.convert("RGB")
-    )
+    img_np = np.array(img.convert("RGB"))
 
     h, w = img_np.shape[:2]
 
     # =================================================
     # RESIZE MÁSCARA
     # =================================================
-    mask_img = Image.fromarray(
-        (mask * 255).astype(np.uint8)
-    )
+    mask_img = Image.fromarray((mask * 255).astype(np.uint8))
 
-    mask_img = mask_img.resize(
-        (w, h),
-        Image.Resampling.LANCZOS
-    )
+    mask_img = mask_img.resize((w, h), Image.Resampling.LANCZOS)
 
     # =================================================
     # BORDA SUAVE
     # =================================================
-    mask_img = mask_img.filter(
-        ImageFilter.GaussianBlur(radius=1)
-    )
+    mask_img = mask_img.filter(ImageFilter.GaussianBlur(radius=1))
 
     # =================================================
     # FLOAT
     # =================================================
-    mask = (
-        np.array(mask_img)
-        .astype(np.float32)
-        / 255.0
-    )
+    mask = np.array(mask_img).astype(np.float32) / 255.0
 
     # =================================================
     # 3 CANAIS
     # =================================================
-    mask_3d = np.stack(
-        [mask, mask, mask],
-        axis=-1
-    )
+    mask_3d = np.stack([mask, mask, mask], axis=-1)
 
     # =================================================
     # SEGMENTAÇÃO
     # =================================================
-    seg = (
-        img_np.astype(np.float32)
-        * mask_3d
-    )
+    seg = img_np.astype(np.float32) * mask_3d
 
     # =================================================
     # FUNDO PRETO // ( OBS: **BRANCO RETIRADO**)
     # =================================================
-    """background = np.ones_like(
-        seg,
-        dtype=np.float32
-    ) * 255
-
-    final = (
-        seg +
-        background * (1 - mask_3d)
-    )"""
     final = seg.astype(np.uint8)
 
-    final = np.clip(
-        final,
-        0,
-        255
-    ).astype(np.uint8)
+    final = np.clip(final, 0, 255).astype(np.uint8)
 
     # =================================================
     # PIL FINAL
     # =================================================
     img_final = Image.fromarray(final)
 
-    print(
-        "[YOLO]: Segmentação concluída"
-    )
+    logger.debug("[YOLO]: Segmentação concluída")
 
     return img_final

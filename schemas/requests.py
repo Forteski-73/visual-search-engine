@@ -1,5 +1,8 @@
-from pydantic import BaseModel, Field
+# schemas/requests.py
 from typing import Optional
+
+from pydantic import BaseModel, Field
+
 
 # =====================================================
 # ANÁLISE BASE64
@@ -8,8 +11,9 @@ class ImageRequest(BaseModel):
 
     image_base64: str = Field(
         ...,
-        description="Imagem em Base64"
+        description="Imagem em Base64",
     )
+
 
 # =====================================================
 # ANÁLISE URL
@@ -18,8 +22,9 @@ class UrlImageRequest(BaseModel):
 
     image_url: str = Field(
         ...,
-        description="URL pública da imagem"
+        description="URL pública da imagem",
     )
+
 
 # =====================================================
 # TREINAMENTO
@@ -31,7 +36,7 @@ class TrainRequest(BaseModel):
     # ================================================
     image_url: Optional[str] = Field(
         default=None,
-        description="URL pública da imagem"
+        description="URL pública da imagem",
     )
 
     # ================================================
@@ -39,7 +44,7 @@ class TrainRequest(BaseModel):
     # ================================================
     image_base64: Optional[str] = Field(
         default=None,
-        description="Imagem em Base64"
+        description="Imagem em Base64",
     )
 
     # ================================================
@@ -49,7 +54,7 @@ class TrainRequest(BaseModel):
         ...,
         min_length=1,
         max_length=100,
-        description="Categoria da decoração/produto"
+        description="Categoria da decoração/produto",
     )
 
     # ================================================
@@ -57,7 +62,7 @@ class TrainRequest(BaseModel):
     # ================================================
     embedding_model: str = Field(
         default="dinov2-base",
-        description="Modelo de embedding utilizado"
+        description="Modelo de embedding utilizado",
     )
 
     # ================================================
@@ -67,8 +72,9 @@ class TrainRequest(BaseModel):
         default=10,
         ge=1,
         le=100,
-        description="Quantidade de imagens augmentadas"
+        description="Quantidade de imagens augmentadas",
     )
+
 
 # =====================================================
 # MODEL - BOM
@@ -82,7 +88,7 @@ class ProductBomRequest(BaseModel):
         ...,
         min_length=1,
         max_length=10,
-        description="Código do produto embalado"
+        description="Código do produto embalado",
     )
 
     # ================================================
@@ -91,7 +97,7 @@ class ProductBomRequest(BaseModel):
     product_bom_id: Optional[str] = Field(
         default=None,
         max_length=10,
-        description="Código do produto da BOM"
+        description="Código do produto da BOM",
     )
 
     # ================================================
@@ -100,7 +106,7 @@ class ProductBomRequest(BaseModel):
     product_name: Optional[str] = Field(
         default=None,
         max_length=255,
-        description="Nome/descrição do produto"
+        description="Nome/descrição do produto",
     )
 
     # ================================================
@@ -109,5 +115,5 @@ class ProductBomRequest(BaseModel):
     product_qty: int = Field(
         default=1,
         ge=1,
-        description="Quantidade do item na BOM"
+        description="Quantidade do item na BOM",
     )
