@@ -117,3 +117,29 @@ class ProductBomRequest(BaseModel):
         ge=1,
         description="Quantidade do item na BOM",
     )
+
+
+# =====================================================
+# RENOMEAR CATEGORIA
+# =====================================================
+class RenameCategoryRequest(BaseModel):
+
+    # ================================================
+    # NOME ATUAL
+    # ================================================
+    categoria_atual: str = Field(
+        ...,
+        min_length=1,
+        max_length=100,
+        description="Nome atual da categoria/decoração",
+    )
+
+    # ================================================
+    # NOME NOVO
+    # ================================================
+    categoria_nova: str = Field(
+        ...,
+        min_length=1,
+        max_length=100,
+        description="Novo nome da categoria/decoração",
+    )

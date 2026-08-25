@@ -8,6 +8,10 @@ def _point(categoria: str):
     return types.SimpleNamespace(payload={"categoria": categoria})
 
 
+def _count_result(n):
+    return types.SimpleNamespace(count=n)
+
+
 def test_listar_categorias_paginado(client, monkeypatch):
     paginas = [
         ([_point("prato_azul"), _point("prato_verde")], "offset_2"),
@@ -75,4 +79,56 @@ def test_excluir_categoria_erro(client, monkeypatch):
         "success": False,
         "error_code": "DELETE_ERROR",
         "message": "Erro ao excluir a categoria: falha ao deletar",
+    }
+
+
+def test_renomear_categoria_sucesso(client, monkeypatch):
+    monkeypatch.setattr(category_service.qdrant_client, "count", lambda **kwargs: _count_result(12))
+    monkeypatch.setattr(category_service.qdrant_client, "set_payload", lambda **kwargs: None)
+
+    resp = client.patch(
+        "/renomearCategoria",
+        json={"categoria_atual": "MERESIA", "categoria_nova": "MARESIA"},
+    )
+
+    assert resp.status_code == 200
+    assert resp.json() == {
+        "success": True,
+        "message": "Categoria 'MERESIA' renomeada para 'MARESIA' em 12 vetor(es).",
+        "total_renomeado": 12,
+    }
+
+
+def test_renomear_categoria_nao_encontrada(client, monkeypatch):
+    monkeypatch.setattr(category_service.qdrant_client, "count", lambda **kwargs: _count_result(0))
+
+    resp = client.patch(
+        "/renomearCategoria",
+        json={"categoria_atual": "INEXISTENTE", "categoria_nova": "QUALQUER"},
+    )
+
+    assert resp.status_code == 200
+    assert resp.json() == {
+        "success": False,
+        "error_code": "CATEGORY_NOT_FOUND",
+        "message": "Nenhum vetor encontrado com a categoria 'INEXISTENTE'.",
+    }
+
+
+def test_renomear_categoria_erro(client, monkeypatch):
+    def count(**kwargs):
+        raise RuntimeError("qdrant indisponível")
+
+    monkeypatch.setattr(category_service.qdrant_client, "count", count)
+
+    resp = client.patch(
+        "/renomearCategoria",
+        json={"categoria_atual": "MERESIA", "categoria_nova": "MARESIA"},
+    )
+
+    assert resp.status_code == 200
+    assert resp.json() == {
+        "success": False,
+        "error_code": "RENAME_ERROR",
+        "message": "Erro ao renomear a categoria: qdrant indisponível",
     }

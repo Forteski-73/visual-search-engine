@@ -87,3 +87,48 @@ def excluir_categoria(categoria: str):
             "error_code": "DELETE_ERROR",
             "message": f"Erro ao excluir a categoria: {str(e)}",
         }
+
+
+# =====================================================
+# ✏️ RENOMEAR CATEGORIA (SÓ O PAYLOAD, VETOR INTACTO)
+# =====================================================
+def renomear_categoria(categoria_atual: str, categoria_nova: str):
+    try:
+        filtro_atual = Filter(
+            must=[FieldCondition(key="categoria", match=MatchValue(value=categoria_atual))]
+        )
+
+        total_afetado = qdrant_client.count(
+            collection_name=COLLECTION_NAME,
+            count_filter=filtro_atual,
+        ).count
+
+        if total_afetado == 0:
+            return {
+                "success": False,
+                "error_code": "CATEGORY_NOT_FOUND",
+                "message": f"Nenhum vetor encontrado com a categoria '{categoria_atual}'.",
+            }
+
+        qdrant_client.set_payload(
+            collection_name=COLLECTION_NAME,
+            payload={"categoria": categoria_nova},
+            points=filtro_atual,
+        )
+
+        return {
+            "success": True,
+            "message": (
+                f"Categoria '{categoria_atual}' renomeada para '{categoria_nova}' "
+                f"em {total_afetado} vetor(es)."
+            ),
+            "total_renomeado": total_afetado,
+        }
+
+    except Exception as e:
+        logger.exception("Falha ao renomear categoria '%s' -> '%s'", categoria_atual, categoria_nova)
+        return {
+            "success": False,
+            "error_code": "RENAME_ERROR",
+            "message": f"Erro ao renomear a categoria: {str(e)}",
+        }
