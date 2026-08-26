@@ -29,7 +29,7 @@ def aplicar_augmentations(img: Image.Image, variacao_index: int) -> Image.Image:
 
     # 1. Rotação aleatória (Crucial para pratos redondos)
     angulo = random.uniform(0, 360)
-    img_aug = img.rotate(angulo, resample=Image.BICUBIC, expand=False, fillcolor="white")
+    img_aug = img.rotate(angulo, resample=Image.BICUBIC, expand=False, fillcolor="black")
 
     # 2. Variação leve de Brilho
     fator_brilho = random.uniform(0.8, 1.2)
